@@ -1,0 +1,13 @@
+{
+  "Host": "YOUR QUEUE URL",
+	"PublicKey": "PUBLIC KEY OF YOUR ACCOUNT",
+	"PrivateKey": "PRIVATE KEY OF YOUR ACCOUNT",
+	"Region": "REGION, e.g. cn-bj2",
+	"Account": "YOUR ACCOUNT NAME",
+	"ProjectID": "YOUR PROJECT, something like org-0ex02v",
+	"ProducerID": "YOUR PRODUCT ID",
+	"ProducerToken": "YOUR PRODUCT TOKEN",
+	"ConsumerID": "YOUR CONSUMER ID",
+	"ConsumerToken": "YOUR CONSUMER TOKEN",
+	"QueueID": "YOUR QUEUE ID"
+}
