@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type MsgHandler func(c chan string, Msg Message)
@@ -277,7 +278,18 @@ func (client *UmqClient) NewConsumer(consumerID, consumerToken string) *UmqConsu
 
 // CreateClient 创建client
 func CreateClient(config UmqConfig) (*UmqClient, error) {
-	httpAddr := fmt.Sprintf("http://%s:6328/", config.Host)
+	var httpAddr, wsAddr, wsURL string
+
+	if strings.HasSuffix(config.Host, "service.ucloud.cn") {
+		httpAddr = fmt.Sprintf("http://%s:6328/", config.Host)
+		wsAddr = fmt.Sprintf("http://%s:6328/", config.Host)
+		wsURL = fmt.Sprintf("ws://%s:6328/ws", config.Host)
+	} else {
+		httpAddr = fmt.Sprintf("http://%s:6318/", config.Host)
+		wsAddr = fmt.Sprintf("http://%s:6318/", config.Host)
+		wsURL = fmt.Sprintf("ws://%s:6318/ws", config.Host)
+	}
+
 	orgId, err := getOrganizationId(httpAddr, config.Account, config.ProjectID,
 		config.PublicKey, config.PrivateKey)
 
@@ -289,8 +301,8 @@ func CreateClient(config UmqConfig) (*UmqClient, error) {
 		email:          config.Account,
 		region:         config.Region,
 		httpAddr:       httpAddr,
-		wsAddr:         fmt.Sprintf("http://%s:6328/", config.Host),
-		wsUrl:          fmt.Sprintf("ws://%s:6328/ws", config.Host),
+		wsAddr:         wsAddr,
+		wsUrl:          wsURL,
 		publicKey:      config.PublicKey,
 		privateKey:     config.PrivateKey,
 		organizationID: orgId,
