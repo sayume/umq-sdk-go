@@ -11,6 +11,13 @@ import (
 	"github.com/ucloud/umq-sdk-go/umq/websocket"
 )
 
+type startConsumeReq struct {
+	OrganizationId uint64
+	QueueId        string
+	ConsumerId     string
+	ConsumerToken  string
+}
+
 type subscribeInfo struct {
 	subscribe      bool
 	lastConnTime   time.Time
@@ -20,6 +27,7 @@ type subscribeInfo struct {
 	mutex          *sync.Mutex
 }
 
+// UmqConsumer consumer的实例
 type UmqConsumer struct {
 	client        *UmqClient
 	consumerID    string
@@ -38,6 +46,7 @@ func newConsumer(client *UmqClient, consumerID, consumerToken string) *UmqConsum
 	}
 }
 
+// GetMsg 获取queueId对应的topic的num条消息
 func (consumer *UmqConsumer) GetMsg(queueId string, num int) (*MessageInfo, error) {
 	req := map[string]string{
 		"Action":         "GetMsg",
@@ -65,6 +74,7 @@ func (consumer *UmqConsumer) GetMsg(queueId string, num int) (*MessageInfo, erro
 	return &resBody.Data, nil
 }
 
+// AckMsg ack queueid对应topic的一条消息，msgId为该消息的message id
 func (consumer *UmqConsumer) AckMsg(queueId, msgId string) error {
 	req := map[string]string{
 		"Action":        "AckMsg",
@@ -96,6 +106,7 @@ func (consumer *UmqConsumer) AckMsg(queueId, msgId string) error {
 	return nil
 }
 
+// UnSubscribe 停止订阅queueId指向的topic
 func (consumer *UmqConsumer) UnSubscribe(queueId string) error {
 	var (
 		info *subscribeInfo
@@ -113,7 +124,8 @@ func (consumer *UmqConsumer) UnSubscribe(queueId string) error {
 	return nil
 }
 
-//SubscribeQueue 订阅消息
+// SubscribeQueue 订阅queueId指向的topic
+// 成功订阅之后，消息会通过msgHandler回调
 func (consumer *UmqConsumer) SubscribeQueue(queueId string, msgHandler MsgHandler) error {
 	consumer.mutex.Lock()
 	if _, ok := consumer.subInfo[queueId]; ok {

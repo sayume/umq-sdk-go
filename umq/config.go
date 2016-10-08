@@ -9,10 +9,16 @@ const (
 
 // UmqConfig 描述了Umq的配置信息
 type UmqConfig struct {
-	Host       string // URL，例如 air.bj2.umq.service.ucloud.cn
-	Region     string // 地域, 例如 RegionCnBj2
-	Account    string // 账户信息
-	ProjectID  string // 项目ID
-	PublicKey  string // 账户的公钥
-	PrivateKey string // 账户的私钥
+	// 主机地址 例如 air.bj2.umq.service.ucloud.cn
+	Host string
+	// 地域, 例如 RegionCnBj2
+	Region string
+	// 账户信息
+	Account string
+	// 项目ID
+	ProjectID string
+	// 账户的公钥
+	PublicKey string
+	// 账户的私钥
+	PrivateKey string
 }

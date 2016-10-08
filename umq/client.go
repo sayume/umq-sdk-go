@@ -8,7 +8,33 @@ import (
 	"strings"
 )
 
-type MsgHandler func(c chan string, Msg Message)
+type httpResult struct {
+	Action  string        `json:"Action"`
+	RetCode int           `json:"RetCode"`
+	Message string        `json:"Message"`
+	DataSet []interface{} `json:"DataSet"`
+}
+
+type httpResult2 struct {
+	Action  string      `json:"Action"`
+	RetCode int         `json:"RetCode"`
+	Message string      `json:"Message"`
+	DataSet interface{} `json:"DataSet"`
+}
+
+type getMessagePack struct {
+	Action  string      `json:"Action"`
+	RetCode int         `json:"RetCode"`
+	Message string      `json:"Message, omitempty"`
+	Data    MessageInfo `json:"Data"`
+}
+
+type wsMessagePack struct {
+	Action  string  `json:"Action"`
+	RetCode int     `json:"RetCode"`
+	Message string  `json:"Message, omitempty"`
+	Data    Message `json:"Data"`
+}
 
 // CreateQueue 创建queue
 func (client *UmqClient) CreateQueue(projectID, couponID, remark, queueName, pushType, qos string) (interface{}, error) {
@@ -31,7 +57,7 @@ func (client *UmqClient) CreateQueue(projectID, couponID, remark, queueName, pus
 	if err != nil {
 		return nil, err
 	}
-	var result HttpResult2
+	var result httpResult2
 	err = json.Unmarshal(res, &result)
 	if err != nil {
 		return nil, err
@@ -45,7 +71,7 @@ func (client *UmqClient) CreateQueue(projectID, couponID, remark, queueName, pus
 	}
 }
 
-//删除queue
+// DeleteQueue 删除queue
 func (client *UmqClient) DeleteQueue(queueId string, projectId string) (interface{}, error) {
 	req := map[string]string{
 		"Action":    "UmqDeleteQueue",
@@ -61,7 +87,7 @@ func (client *UmqClient) DeleteQueue(queueId string, projectId string) (interfac
 	if err != nil {
 		return nil, err
 	}
-	var result HttpResult2
+	var result httpResult2
 	err = json.Unmarshal(res, &result)
 	if err != nil {
 		return nil, err
@@ -73,7 +99,7 @@ func (client *UmqClient) DeleteQueue(queueId string, projectId string) (interfac
 	}
 }
 
-//展示queue
+// ListQueue 获取队列列表
 func (client *UmqClient) ListQueue(limit int, offset int, projectId string) (interface{}, error) {
 	var resultList []QueueInfo
 	req := map[string]string{
@@ -91,7 +117,7 @@ func (client *UmqClient) ListQueue(limit int, offset int, projectId string) (int
 	if err != nil {
 		return nil, err
 	}
-	var result HttpResult
+	var result httpResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
 		return nil, err
@@ -122,7 +148,7 @@ func (client *UmqClient) ListQueue(limit int, offset int, projectId string) (int
 			if err != nil {
 				return nil, err
 			}
-			var publisherResult HttpResult
+			var publisherResult httpResult
 			err = json.Unmarshal(resPublisher, &publisherResult)
 			if err != nil {
 				return nil, err
@@ -155,7 +181,7 @@ func (client *UmqClient) ListQueue(limit int, offset int, projectId string) (int
 			if err != nil {
 				return nil, err
 			}
-			var consumerResult HttpResult
+			var consumerResult httpResult
 			err = json.Unmarshal(resConsumer, &consumerResult)
 			if err != nil {
 				return nil, err
@@ -184,7 +210,7 @@ func (client *UmqClient) ListQueue(limit int, offset int, projectId string) (int
 	}
 }
 
-//创建角色
+// CreateRole 创建角色
 func (client *UmqClient) CreateRole(queueId string, num int, role string, projectId string) (interface{}, error) {
 	if role != "Pub" && role != "Sub" {
 		return nil, errors.New("Role can only be Pub or Sub.")
@@ -206,7 +232,7 @@ func (client *UmqClient) CreateRole(queueId string, num int, role string, projec
 	if err != nil {
 		return nil, err
 	}
-	var result HttpResult
+	var result httpResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
 		return nil, err
@@ -230,7 +256,7 @@ func (client *UmqClient) CreateRole(queueId string, num int, role string, projec
 	}
 }
 
-//删除角色
+// DeleteRole 删除角色
 func (client *UmqClient) DeleteRole(queueId string, roleId string, role string) (interface{}, error) {
 	if role != "Pub" && role != "Sub" {
 		return nil, errors.New("Role can only be Pub or Sub.")
@@ -249,7 +275,7 @@ func (client *UmqClient) DeleteRole(queueId string, roleId string, role string) 
 	if err != nil {
 		return nil, err
 	}
-	var result HttpResult
+	var result httpResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
 		return nil, err
