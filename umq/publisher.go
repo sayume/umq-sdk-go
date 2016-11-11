@@ -1,38 +1,24 @@
 package umq
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 )
 
+// UmqProducer UMQ生产者的实例
+type UmqProducer struct {
+	client *UmqClient
+	token  string
+}
+
+type PublishResponse struct {
+}
+
 //PublishMsg 发布消息
-func (publisher *UmqProducer) PublishMsg(queueID, content string) error {
-	req := map[string]string{
-		"Action":         "PublishMsg",
-		"Region":         publisher.client.region,
-		"QueueId":        queueID,
-		"PublisherId":    publisher.producerID,
-		"PublisherToken": publisher.token,
-		"Content":        content,
-		"OrganizationId": publisher.client.organizationID,
-	}
-
-	resp, err := sendHTTPRequest(publisher.client.httpAddr, req, 10)
-	if err != nil {
-		return err
-	}
-	var replyBody map[string]interface{}
-	err = json.Unmarshal(resp, &replyBody)
-	if err != nil {
-		return err
-	}
-
-	if resultCode, ok := replyBody["RetCode"].(float64); !ok || int(resultCode) != 0 {
-		errMsg := ""
-		if msg, ok := replyBody["Message"].(string); ok {
-			errMsg = msg
-		}
-		return fmt.Errorf("Fail to publish message: %s", errMsg)
-	}
-	return nil
+func (publisher *UmqProducer) PublishMsg(queueID string, message io.Reader) error {
+	url := *(publisher.client.baseURL)
+	url.Path = fmt.Sprintf("/%s/%s/message", publisher.client.projectID, queueID)
+	resp := &PublishResponse{}
+	err := sendHTTPRequest(url.String(), "POST", message, publisher.token, resp)
+	return err
 }

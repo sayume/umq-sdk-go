@@ -1,14 +1,12 @@
 package umq
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
-	urlLib "net/url"
 	"sort"
 	"time"
 )
@@ -19,54 +17,54 @@ func init() {
 	client = newTimeoutHTTPClient(time.Duration(10) * time.Second)
 }
 
-func postHTTPRequest(url string, params map[string]string) (res []byte, err error) {
+func makeJsonReader(body interface{}) (io.Reader, error) {
+	reader, writer := io.Pipe()
+	err := json.NewEncoder(writer).Encode(body)
 	if err != nil {
-		return
+		return nil, err
 	}
-	bodyBuf, err := json.Marshal(params)
-	if err != nil {
-		return
-	}
-	outputBuf := bytes.NewReader(bodyBuf)
-	result, err := client.Post(url, "application/json", outputBuf)
-	if err != nil {
-		return
-	}
-	defer result.Body.Close()
-	res, err = ioutil.ReadAll(result.Body)
-	return
+	return reader, nil
 }
 
-func sendHTTPRequest(url string, params map[string]string, timeout uint32) (res []byte, err error) {
-	req, err := urlLib.Parse(url)
+func sendHTTPRequest(url string, method string, body io.Reader, authToken string, output interface{}) (err error) {
+	var reader io.Reader
+	var writer io.Writer
+	rqst, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return
 	}
 
-	reqQuery := req.Query()
-	for k, v := range params {
-		reqQuery.Set(k, v)
-	}
-	req.RawQuery = reqQuery.Encode()
-	result, err := client.Get(req.String())
+	rqst.Header.Set("content-length", "application/json")
+	rqst.Header.Set("Authorization", authToken)
+	response, err := client.Do(rqst)
 	if err != nil {
 		return
 	}
-	defer result.Body.Close()
-	res, err = ioutil.ReadAll(result.Body)
+	defer response.Body.Close()
+	err = json.NewDecoder(response.Body).Decode(output)
+	if err != nil {
+		return
+	}
+
+	switch response.StatusCode {
+	case 200:
+		return nil
+	case 404:
+		return ErrInvalidResource
+	case 400:
+		return ErrInvalidInput
+	case 500:
+		return ErrServerError
+	}
 	return
 }
 
 func sendAPIHttpRequest(params map[string]string, privateKey string, timeout uint32) (res []byte, err error) {
-	sign := signParams(params, privateKey)
-	params["Signature"] = sign
-	return sendHTTPRequest("https://api.ucloud.cn", params, timeout)
+	return nil, nil
 }
 
 func sendUMQAPIHttpRequest(url string, params map[string]string, privateKey string, timeout uint32) (res []byte, err error) {
-	sign := signParams(params, privateKey)
-	params["Signature"] = sign
-	return sendHTTPRequest(url, params, timeout)
+	return nil, nil
 }
 
 func dialHTTPTimeout(timeOut time.Duration) func(net, addr string) (net.Conn, error) {

@@ -3,9 +3,8 @@ package umq
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"net/url"
 	"strconv"
-	"strings"
 )
 
 type httpResult struct {
@@ -291,9 +290,8 @@ func (client *UmqClient) DeleteRole(queueId string, roleId string, role string) 
 // NewProducer 创建一个生产者实例
 func (client *UmqClient) NewProducer(producerID, producerToken string) *UmqProducer {
 	return &UmqProducer{
-		client:     client,
-		producerID: producerID,
-		token:      producerToken,
+		client: client,
+		token:  producerID + ":" + producerToken,
 	}
 }
 
@@ -303,34 +301,18 @@ func (client *UmqClient) NewConsumer(consumerID, consumerToken string) *UmqConsu
 }
 
 // CreateClient 创建client
-func CreateClient(config UmqConfig) (*UmqClient, error) {
-	var httpAddr, wsAddr, wsURL string
-	if len(strings.Split(config.Host, ".")) > 4 {
-		httpAddr = fmt.Sprintf("http://%s:6318/", config.Host)
-		wsAddr = fmt.Sprintf("http://%s:6318/", config.Host)
-		wsURL = fmt.Sprintf("ws://%s:6318/ws", config.Host)
-	} else {
-		httpAddr = fmt.Sprintf("http://%s:6328/", config.Host)
-		wsAddr = fmt.Sprintf("http://%s:6328/", config.Host)
-		wsURL = fmt.Sprintf("ws://%s:6328/ws", config.Host)
-	}
-
-	orgId, err := getOrganizationId(httpAddr, config.Account, config.ProjectID,
-		config.PublicKey, config.PrivateKey)
-
+func NewClient(config UmqConfig) (*UmqClient, error) {
+	baseURL, err := url.Parse(config.Host)
 	if err != nil {
 		return nil, err
 	}
-
 	return &UmqClient{
 		email:          config.Account,
 		region:         config.Region,
-		httpAddr:       httpAddr,
-		wsAddr:         wsAddr,
-		wsUrl:          wsURL,
+		baseURL:        baseURL,
 		publicKey:      config.PublicKey,
 		privateKey:     config.PrivateKey,
-		organizationID: orgId,
+		organizationID: "1234",
 		projectID:      config.ProjectID,
 	}, nil
 }

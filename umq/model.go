@@ -1,5 +1,10 @@
 package umq
 
+import (
+	"errors"
+	"net/url"
+)
+
 // MsgHandler 订阅函数使用的回调函数
 // 其中 channel c 用来ack这条消息，一个常见的MsgHandler的实现如下
 //   func handleMessage(c chan string, msg Message) {
@@ -44,18 +49,15 @@ type QueueInfo struct {
 type UmqClient struct {
 	email          string
 	region         string
-	httpAddr       string
-	wsUrl          string
-	wsAddr         string
+	baseURL        *url.URL
 	publicKey      string
 	privateKey     string
 	projectID      string // 这个是缓存的project id
 	organizationID string // 这个是转换出来的数字的org id
 }
 
-// UmqProducer UMQ生产者的实例
-type UmqProducer struct {
-	client     *UmqClient
-	producerID string
-	token      string
-}
+var (
+	ErrInvalidResource = errors.New("Invalid topic or project id")
+	ErrServerError     = errors.New("server error")
+	ErrInvalidInput    = errors.New("Having invalid parameters")
+)
