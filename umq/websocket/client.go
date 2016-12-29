@@ -7,6 +7,7 @@ package websocket
 import (
 	"bufio"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -24,18 +25,20 @@ func (e *DialError) Error() string {
 }
 
 // NewConfig creates a new WebSocket config for client connection.
-func NewConfig(server, origin string) (config *Config, err error) {
+func NewConfig(server string, header http.Header) (config *Config, err error) {
 	config = new(Config)
 	config.Version = ProtocolVersionHybi13
 	config.Location, err = url.ParseRequestURI(server)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	config.Origin, err = url.ParseRequestURI(origin)
-	if err != nil {
-		return
-	}
-	config.Header = http.Header(make(map[string][]string))
+	// config.Origin, err = url.ParseRequestURI(origin)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	config.Header = header
 	return
 }
 
@@ -53,13 +56,14 @@ func NewClient(config *Config, rwc io.ReadWriteCloser) (ws *Conn, err error) {
 }
 
 // Dial opens a new client connection to a WebSocket.
-func Dial(url_, protocol, origin string) (ws *Conn, err error) {
-	config, err := NewConfig(url_, origin)
+func Dial(url_, protocol string, header http.Header) (ws *Conn, err error) {
+	config, err := NewConfig(url_, header)
 	if err != nil {
 		return nil, err
 	}
 	if protocol != "" {
 		config.Protocol = []string{protocol}
+		config.Header = header
 	}
 	return DialConfig(config)
 }

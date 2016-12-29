@@ -1,9 +1,11 @@
 package umq
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -34,6 +36,20 @@ type UmqConsumer struct {
 	consumerToken string
 	subInfo       map[string]*subscribeInfo
 	mutex         *sync.Mutex
+	token         string
+}
+
+type GetMsgResponse struct {
+	Count    int
+	Messages []Message
+}
+
+type AckMsgRequest struct {
+	MessageID []string `json:"MessageID"`
+}
+
+type AckMsgResponse struct {
+	FailMessageID []string `json:"FailMessageID"`
 }
 
 func newConsumer(client *UmqClient, consumerID, consumerToken string) *UmqConsumer {
@@ -47,63 +63,37 @@ func newConsumer(client *UmqClient, consumerID, consumerToken string) *UmqConsum
 }
 
 // GetMsg 获取queueId对应的topic的num条消息
-func (consumer *UmqConsumer) GetMsg(queueId string, num int) (*MessageInfo, error) {
-	req := map[string]string{
-		"Action":         "GetMsg",
-		"QueueId":        queueId,
-		"Region":         consumer.client.region,
-		"ConsumerId":     consumer.consumerID,
-		"ConsumerToken":  consumer.consumerToken,
-		"OrganizationId": consumer.client.organizationID,
-		"Num":            strconv.Itoa(num),
-	}
-
-	res, err := sendHTTPRequest(consumer.client.httpAddr, req, 10)
+func (consumer *UmqConsumer) GetMsg(queueId string, num int) ([]Message, error) {
+	url := *(consumer.client.baseURL)
+	url.Path = fmt.Sprintf("/%s/%s/message", consumer.client.projectID, queueId)
+	params := url.Query()
+	params.Set("count", strconv.Itoa(num))
+	url.RawQuery = params.Encode()
+	resp := GetMsgResponse{}
+	err := sendHTTPRequest(url.String(), "GET", nil, consumer.token, &resp, 0)
 	if err != nil {
 		return nil, err
 	}
-	var resBody getMessagePack
-	err = json.Unmarshal(res, &resBody)
-	if err != nil {
-		return nil, err
-	}
-
-	if resBody.RetCode != 0 {
-		return nil, fmt.Errorf("Fail to get message: %s", resBody.Message)
-	}
-	return &resBody.Data, nil
+	return resp.Messages, nil
 }
 
 // AckMsg ack queueid对应topic的一条消息，msgId为该消息的message id
-func (consumer *UmqConsumer) AckMsg(queueId, msgId string) error {
-	req := map[string]string{
-		"Action":        "AckMsg",
-		"Region":        consumer.client.region,
-		"QueueId":       queueId,
-		"ConsumerId":    consumer.consumerID,
-		"ConsumerToken": consumer.consumerToken,
-		"MsgId":         msgId,
+func (consumer *UmqConsumer) AckMsg(queueId string, msgId []string) (msgID []string, err error) {
+	url := *(consumer.client.baseURL)
+	url.Path = fmt.Sprintf("/%s/%s/message", consumer.client.projectID, queueId)
+	req := &AckMsgRequest{
+		MessageID: msgId,
 	}
-
-	resp, err := sendHTTPRequest(consumer.client.httpAddr, req, 10)
+	data, err := json.Marshal(req)
 	if err != nil {
-		return err
+		return make([]string, 0), err
 	}
-
-	var resBody map[string]interface{}
-	err = json.Unmarshal(resp, &resBody)
-	if err != nil {
-		return err
+	resp := AckMsgResponse{}
+	err = sendHTTPRequest(url.String(), "DELETE", bytes.NewReader(data), consumer.token, &resp, 0)
+	if resp.FailMessageID == nil {
+		return make([]string, 0), fmt.Errorf("Fail to ack message")
 	}
-
-	if resultCode, ok := resBody["RetCode"].(float64); !ok || int(resultCode) != 0 {
-		errMsg := ""
-		if msg, ok := resBody["Message"].(string); ok {
-			errMsg = msg
-		}
-		return fmt.Errorf("Fail to ack message: %s", errMsg)
-	}
-	return nil
+	return resp.FailMessageID, err
 }
 
 // UnSubscribe 停止订阅queueId指向的topic
@@ -154,7 +144,7 @@ func (consumer *UmqConsumer) SubscribeQueue(queueId string, msgHandler MsgHandle
 			case MsgId := <-ackMsg:
 				if MsgId == "" {
 				} else {
-					consumer.AckMsg(queueId, MsgId)
+					consumer.AckMsg(queueId, []string{MsgId})
 				}
 			case info := <-subInfo.stop:
 				info.mutex.Lock()
@@ -245,40 +235,13 @@ func (consumer *UmqConsumer) reconnect(queueId string) (connected bool, err erro
 }
 
 func (consumer *UmqConsumer) handshake(queueId string) (*websocket.Conn, error) {
-	wsConn, err := websocket.Dial(consumer.client.wsUrl, "", consumer.client.wsAddr)
+	path := fmt.Sprintf("/%s/%s/message/subscription?permits=1000", consumer.client.projectID, queueId)
+	header := http.Header{}
+	header.Add("content-type", "application/json")
+	header.Add("Authorization", consumer.token)
+	fmt.Println(path)
+	wsConn, err := websocket.Dial("ws:"+consumer.client.wsUrl+path, "", header)
 	if err != nil {
-		return nil, err
-	}
-	orgId, _ := strconv.ParseUint(consumer.client.organizationID, 10, 64)
-	wsData := startConsumeReq{
-		OrganizationId: orgId,
-		QueueId:        queueId,
-		ConsumerId:     consumer.consumerID,
-		ConsumerToken:  consumer.consumerToken,
-	}
-
-	subReq := map[string]interface{}{
-		"Action": "ConsumeMsg",
-		"Data":   wsData,
-	}
-
-	buffer, err := json.Marshal(subReq)
-	if err != nil {
-		wsConn.Close()
-		return nil, err
-	}
-
-	_, err = wsConn.Write(buffer)
-	if err != nil {
-		wsConn.Close()
-		return nil, err
-	}
-
-	//订阅回包
-	var subRes []byte
-	err = websocket.Message.Receive(wsConn, &subRes)
-	if err != nil {
-		wsConn.Close()
 		return nil, err
 	}
 	return wsConn, nil

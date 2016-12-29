@@ -5,20 +5,13 @@ import (
 	"io"
 )
 
-// UmqProducer UMQ生产者的实例
-type UmqProducer struct {
-	client *UmqClient
-	token  string
-}
-
 type PublishResponse struct {
+	MessageID string
 }
 
 //PublishMsg 发布消息
-func (publisher *UmqProducer) PublishMsg(queueID string, message io.Reader) error {
+func (publisher *UmqProducer) PublishMsg(queueID string, message io.Reader) (msgID string, err error) {
 	url := *(publisher.client.baseURL)
 	url.Path = fmt.Sprintf("/%s/%s/message", publisher.client.projectID, queueID)
-	resp := &PublishResponse{}
-	err := sendHTTPRequest(url.String(), "POST", message, publisher.token, resp)
-	return err
+	return sendHTTPRequestWithStringOutput(url.String(), "POST", message, publisher.token, 0)
 }

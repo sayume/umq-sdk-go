@@ -2,6 +2,7 @@ package example
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	umq "github.com/ucloud/umq-sdk-go/umq"
@@ -21,7 +22,7 @@ func RunPubSub(client *umq.UmqClient,
 
 	go func() {
 		for i := 0; i < 10; i++ {
-			go producer.PublishMsg(queueId, t)
+			go producer.PublishMsg(queueId, strings.NewReader(t))
 		}
 	}()
 
@@ -32,7 +33,7 @@ func RunPubSub(client *umq.UmqClient,
 			fmt.Println("receive message", msg)
 			atomic.AddInt32(&count, 1)
 			nc := atomic.LoadInt32(&count)
-			c <- msg.MsgId
+			c <- msg.MessageID
 			fmt.Println(nc)
 			if nc == 10 {
 				consumer1.UnSubscribe(queueId)
