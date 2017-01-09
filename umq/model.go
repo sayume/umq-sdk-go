@@ -1,10 +1,5 @@
 package umq
 
-import (
-	"errors"
-	"net/url"
-)
-
 // MsgHandler 订阅函数使用的回调函数
 // 其中 channel c 用来ack这条消息，一个常见的MsgHandler的实现如下
 //   func handleMessage(c chan string, msg Message) {
@@ -21,43 +16,30 @@ type MessageInfo struct {
 
 // Message 消息的结构体
 type Message struct {
-	MsgId   string `json:"MsgId"`
-	MsgBody string `json:"MsgBody"`
+	MessageID string `json:"messageID"`
+	Content   string `json:"content"`
 }
 
 // Role 角色的结构体
 type Role struct {
-	Id         string
-	Token      string
-	CreateTime int64
+	RoleId     string `json:"RoleId"`
+	RoleToken      string `json:"RoleToken`
+	CreateTime int64 `json:"CreateTime`
+	Status string `json:"Status"`
 }
 
 // QueueInfo 队列的信息
 type QueueInfo struct {
-	QueueId       string
-	QueueName     string
-	PushType      string
-	MsgTTL        int
-	CreateTime    int64
-	HttpAddr      string
-	QoS           string
-	PublisherList []Role
-	ConsumerList  []Role
+	QueueId     string
+	QueueName   string
+	MessageTTL  int
+	CreateTime  int64
+	Description string
 }
 
-// UmqClient UMQ的客户端实例
-type UmqClient struct {
-	email          string
-	region         string
-	baseURL        *url.URL
-	publicKey      string
-	privateKey     string
-	projectID      string // 这个是缓存的project id
-	organizationID string // 这个是转换出来的数字的org id
+// UmqProducer UMQ生产者的实例
+type UmqProducer struct {
+	client     *UmqClient
+	producerID string
+	token      string
 }
-
-var (
-	ErrInvalidResource = errors.New("Invalid topic or project id")
-	ErrServerError     = errors.New("server error")
-	ErrInvalidInput    = errors.New("Having invalid parameters")
-)
