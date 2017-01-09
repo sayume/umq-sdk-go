@@ -239,7 +239,6 @@ func (consumer *UmqConsumer) handshake(queueId string) (*websocket.Conn, error) 
 	header := http.Header{}
 	header.Add("content-type", "application/json")
 	header.Add("Authorization", consumer.token)
-	fmt.Println(path)
 	wsConn, err := websocket.Dial("ws:"+consumer.client.wsUrl+path, "", header)
 	if err != nil {
 		return nil, err

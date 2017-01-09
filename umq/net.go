@@ -20,10 +20,10 @@ import (
 var client *http.Client
 
 var (
-	ErrInvalidResource  = errors.New("")
-	ErrInvalidInput     = errors.New("")
-	ErrServerError      = errors.New("")
-	ErrUnauthorizeError = errors.New("")
+	ErrInvalidResource  = errors.New("Invalid Resource")
+	ErrInvalidInput     = errors.New("Invalid Arguments")
+	ErrServerError      = errors.New("Server Error")
+	ErrUnauthorizeError = errors.New("Unauthorized")
 )
 
 const maxRetryTime = 30 * 1000 //milisecond
@@ -56,15 +56,15 @@ func sendHTTPRequest(url string, method string, body io.Reader, authToken string
 		return
 	}
 	defer response.Body.Close()
-	err = json.NewDecoder(response.Body).Decode(output)
-	if err != nil {
-		return
-	}
 
 	switch response.StatusCode {
 	case 200:
+		err = json.NewDecoder(response.Body).Decode(output)
+		if err != nil {
+			return
+		}
 		return nil
-	case 203:
+	case 401:
 		return ErrUnauthorizeError
 	case 404:
 		return ErrInvalidResource
@@ -144,7 +144,7 @@ func sendHTTPRequestWithStringOutput(url string, method string, body io.Reader, 
 	switch response.StatusCode {
 	case 200:
 		return "", nil
-	case 203:
+	case 401:
 		return "", ErrUnauthorizeError
 	case 404:
 		return "", ErrInvalidResource

@@ -31,7 +31,7 @@ type Configuration struct {
 	// 消费者Token
 	ConsumerToken string
 	// 主题名称
-	TopicName string
+	TopicName string `json:"QueueID"`
 }
 
 func main() {
@@ -46,6 +46,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println(conf)
 
 	//配置umq http client，其中HttpAddr和WsAddr可从console的umq主页上查询，PublicKey和PrivateKey可从console的账户主页上获得。
 	client, err := umq.NewClient(umq.UmqConfig{
@@ -68,16 +69,17 @@ func main() {
 	// Publish a message to a topic
 	msgID, err := producer.PublishMsg(conf.TopicName, strings.NewReader("message body"))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("publish error", err)
 		return
 	}
-	fmt.Println(msgID)
+	fmt.Println("publish done", msgID)
 	// Get messages from topic
-	msgs, err := consumer.GetMsg(conf.TopicName, 100)
+	msgs, err := consumer.GetMsg(conf.TopicName, 10)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("get message error ", err)
 		return
 	}
+	fmt.Println("get message done", msgs)
 	messageIDList := make([]string, 0)
 	for _, m := range msgs {
 		messageIDList = append(messageIDList, m.MessageID)
@@ -92,6 +94,7 @@ func main() {
 		fmt.Println("We have unacked messages.")
 		return
 	}
+	fmt.Println("ack message done")
 	// Create a new topic
 	isSuccess, err := client.CreateTopic("topic name", "pubsub or queue", "topic description", -1)
 	if err != nil || !isSuccess {

@@ -7,7 +7,6 @@ package websocket
 import (
 	"bufio"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -30,7 +29,6 @@ func NewConfig(server string, header http.Header) (config *Config, err error) {
 	config.Version = ProtocolVersionHybi13
 	config.Location, err = url.ParseRequestURI(server)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	// config.Origin, err = url.ParseRequestURI(origin)

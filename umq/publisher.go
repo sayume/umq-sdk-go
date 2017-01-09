@@ -13,5 +13,9 @@ type PublishResponse struct {
 func (publisher *UmqProducer) PublishMsg(queueID string, message io.Reader) (msgID string, err error) {
 	url := *(publisher.client.baseURL)
 	url.Path = fmt.Sprintf("/%s/%s/message", publisher.client.projectID, queueID)
-	return sendHTTPRequestWithStringOutput(url.String(), "POST", message, publisher.token, 0)
+	resp := PublishResponse{}
+	if err := sendHTTPRequest(url.String(), "POST", message, publisher.token, &resp, 0); err != nil {
+		return "", err
+	}
+	return resp.MessageID, nil
 }
