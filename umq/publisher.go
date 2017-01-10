@@ -14,7 +14,7 @@ func (publisher *UmqProducer) PublishMsg(queueID string, message io.Reader) (msg
 	url := *(publisher.client.baseURL)
 	url.Path = fmt.Sprintf("/%s/%s/message", publisher.client.projectID, queueID)
 	resp := PublishResponse{}
-	if err := sendHTTPRequest(url.String(), "POST", message, publisher.token, &resp, 0); err != nil {
+	if err := sendHTTPRequest(url.String(), "POST", message, publisher.token, &resp); err != nil {
 		return "", err
 	}
 	return resp.MessageID, nil

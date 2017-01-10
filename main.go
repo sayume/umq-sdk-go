@@ -31,7 +31,7 @@ type Configuration struct {
 	// 消费者Token
 	ConsumerToken string
 	// 主题名称
-	TopicName string `json:"QueueID"`
+	TopicName string
 }
 
 func main() {

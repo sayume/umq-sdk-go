@@ -70,7 +70,7 @@ func (consumer *UmqConsumer) GetMsg(queueId string, num int) ([]Message, error) 
 	params.Set("count", strconv.Itoa(num))
 	url.RawQuery = params.Encode()
 	resp := GetMsgResponse{}
-	err := sendHTTPRequest(url.String(), "GET", nil, consumer.token, &resp, 0)
+	err := sendHTTPRequest(url.String(), "GET", nil, consumer.token, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (consumer *UmqConsumer) AckMsg(queueId string, msgId []string) (msgID []str
 		return make([]string, 0), err
 	}
 	resp := AckMsgResponse{}
-	err = sendHTTPRequest(url.String(), "DELETE", bytes.NewReader(data), consumer.token, &resp, 0)
+	err = sendHTTPRequest(url.String(), "DELETE", bytes.NewReader(data), consumer.token, &resp)
 	if resp.FailMessageID == nil {
 		return make([]string, 0), fmt.Errorf("Fail to ack message")
 	}
