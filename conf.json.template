@@ -9,5 +9,5 @@
 	"ProducerToken": "YOUR PRODUCT TOKEN",
 	"ConsumerID": "YOUR CONSUMER ID",
 	"ConsumerToken": "YOUR CONSUMER TOKEN",
-	"QueueID": "YOUR QUEUE ID"
+	"TopicName": "YOUR TOPIC NAME"
 }

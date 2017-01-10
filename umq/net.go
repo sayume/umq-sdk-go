@@ -47,30 +47,30 @@ func sendHTTPRequest(url string, method string, body io.Reader, authToken string
 	retryTimes := 0
 	for {
 		if retryTimes >= maxRetryTimes {
-			return ErrServerError
+			return err
 		}
 
-		rqst, err := http.NewRequest(method, url, body)
+		var rqst *http.Request
+		var response *http.Response
+		rqst, err = http.NewRequest(method, url, body)
 		if err != nil {
-			return err
+			return
 		}
 
 		rqst.Header.Set("content-type", "application/json")
 		rqst.Header.Set("Authorization", authToken)
-		response, err := client.Do(rqst)
+		response, err = client.Do(rqst)
 		if err != nil {
-			return err
+			return
 		}
 		defer response.Body.Close()
 
 		fmt.Println(response.StatusCode)
 		if response.StatusCode >= 500 {
-			if retryTimes > maxRetryTimes {
-				return ErrServerError
-			}
 			delay := rand.Int63n(int64(200 * math.Exp2(float64(retryTimes))))
 			<-time.After(time.Duration(math.Min(float64(maxRetryTime), float64(delay))) * time.Millisecond)
 			retryTimes++
+			err = ErrServerError
 			continue
 		}
 
@@ -78,17 +78,21 @@ func sendHTTPRequest(url string, method string, body io.Reader, authToken string
 		case 200:
 			err = json.NewDecoder(response.Body).Decode(output)
 			if err != nil {
-				return err
+				return
 			}
-			return nil
+			return
 		case 401:
-			return ErrUnauthorizeError
+			err = ErrUnauthorizeError
+			return
 		case 404:
-			return ErrInvalidResource
+			err = ErrInvalidResource
+			return
 		case 400:
-			return ErrInvalidInput
+			err = ErrInvalidInput
+			return
 		default:
-			return ErrServerError
+			err = ErrServerError
+			return
 		}
 	}
 }
@@ -97,7 +101,7 @@ func sendHttpRequestForAPI(url string, params map[string]string, timeout uint32)
 	retryTimes := 0
 	for {
 		if retryTimes >= maxRetryTimes {
-			return nil, ErrServerError
+			return nil, err
 		}
 
 		req, err := urlLib.Parse(url)
@@ -121,6 +125,7 @@ func sendHttpRequestForAPI(url string, params map[string]string, timeout uint32)
 			delay := rand.Int63n(int64(200 * math.Exp2(float64(retryTimes))))
 			<-time.After(time.Duration(math.Min(float64(maxRetryTime), float64(delay))) * time.Millisecond)
 			retryTimes++
+			err = ErrServerError
 			continue
 		}
 		switch result.StatusCode {
@@ -132,6 +137,8 @@ func sendHttpRequestForAPI(url string, params map[string]string, timeout uint32)
 			return nil, ErrInvalidResource
 		case 400:
 			return nil, ErrInvalidInput
+		default:
+			return nil, ErrServerError
 		}
 	}
 }
